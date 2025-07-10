@@ -1,0 +1,12 @@
+DROP TRIGGER IF EXISTS favCountDelete;
+
+DELIMITER //
+
+CREATE TRIGGER favCountDelete
+	AFTER DELETE ON Favorites
+	FOR EACH ROW
+	BEGIN
+		UPDATE Account SET favoritesCount = (favoritesCount-1) WHERE Account.userID = OLD.userID;
+	END //
+
+DELIMITER;

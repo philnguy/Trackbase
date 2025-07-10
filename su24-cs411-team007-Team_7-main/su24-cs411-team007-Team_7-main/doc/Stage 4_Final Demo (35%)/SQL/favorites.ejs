@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favorites</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+        .container {
+            flex: 1;
+            padding: 20px;
+        }
+	 table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/">Home</a>
+        <a href="/favorites">Favorites</a>
+	<a href="/quiz">Quiz</a>
+	<a href="/account">Account(<span class="username"><%= username %></span>) </a>
+    </header>
+    <div class="favorites">
+        <h2>Your Favorites:</h2>
+        <p id="favoritesCount">Loading...</p>
+    </div>
+<div class="quiz-results">
+            
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">Song Name</th>
+                        <th onclick="sortTable(1)">Artist Name</th>
+                        <th onclick="sortTable(2)">Album Name</th>
+                        <th onclick="sortTable(3)">Popularity</th>
+                    </tr>
+                </thead>
+                <tbody id="resultTableBody">
+                    <!-- Results will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function getFavoriteCount() {
+            fetch('/getFavoriteCount')
+                .then(response => response.json())
+                .then(data=> {
+                    document.getElementById('favoritesCount').innerText = `${data.favoritesCount} favorite(s)`;
+                })
+                .catch(error => {
+                    console.error('Error fetching favorites count:', error);
+                    document.getElementById('favoritesCount').innerText = 'Error loading favorites count.';
+                });
+        }
+
+        // Call getFavoriteCount when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            getFavoriteCount();
+        });
+
+
+        function getFavs() {
+            fetch(`/getFavorites`)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('resultTableBody');
+                    tableBody.innerHTML = '';
+                    data.forEach(song => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${song.songName}</td>
+			                <td>${song.artistName}</td>
+                            <td>${song.albumName}</td>
+			                <td>${song.popularity}</td>
+			                <button onclick="removeFromFavorites('${song.spotifyTrackID}')">Remove</button>
+
+                        `;
+			tableBody.appendChild(row);
+                    });
+                });
+        }
+
+let sortDirection = true; // true for ascending, false for descending
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById("resultsTable");
+            const rows = Array.from(table.rows).slice(1);
+	     const isNumericColumn = columnIndex === 3;
+            const sortedRows = rows.sort((a, b) => {
+                const aText = a.cells[columnIndex].innerText;
+                const bText = b.cells[columnIndex].innerText;
+		if (columnIndex == 3) {
+			const aValue = isNumericColumn ? parseFloat(aText) : aText.toLowerCase();
+                	const bValue = isNumericColumn ? parseFloat(bText) : bText.toLowerCase();
+                	if (aValue < bValue) return sortDirection ? -1 : 1;
+                	if (aValue > bValue) return sortDirection ? 1 : -1;
+}
+                return (sortDirection ? aText.localeCompare(bText) : bText.localeCompare(aText));
+            });
+            
+
+            const tbody = document.getElementById("resultTableBody");
+            tbody.innerHTML = '';
+            sortedRows.forEach(row => tbody.appendChild(row));
+
+            sortDirection = !sortDirection;
+
+            // Update column header styles
+            Array.from(table.getElementsByTagName("th")).forEach((th, index) => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (index === columnIndex) {
+                    th.classList.add(sortDirection ? 'sort-asc' : 'sort-desc');
+                }
+            });
+        }
+	document.addEventListener('DOMContentLoaded', getFavs);
+	
+	function handleFavoriteAction(songId, action) {
+        fetch(action === 'add' ? '/addFavorite' : '/removeFavorite', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ songId: songId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(action === 'add' ? 'Song added to favorites' : 'Song removed from favorites');
+            } else {
+                alert('Error performing action');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+function removeFromFavorites(spotifyTrackID) {
+	    console.log('Removing song with ID:', spotifyTrackID); 
+            fetch('/remove-from-favorites', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ spotifyTrackID })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                    
+                } else {
+                    alert('Error removing from favorites.');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Load favorites on page load
+        window.onload = loadFavorites;
+	</script>
+</body>
+</html>

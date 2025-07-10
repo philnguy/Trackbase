@@ -1,0 +1,104 @@
+DROP TABLE IF EXISTS BIGTABLE;
+DROP TRIGGER IF EXISTS genArtistID;
+
+
+CREATE TABLE BIGTABLE (
+    spotifyTrackID VARCHAR(100) PRIMARY KEY, 
+    artistName VARCHAR(100), 
+    albumName VARCHAR(100),
+    songName VARCHAR(100), 
+    popularity INT,
+    songDuration INT, 
+    danceability FLOAT, 
+    loudness FLOAT, 
+    speechiness FLOAT, 
+    tempo FLOAT,
+    genre VARCHAR(100),
+    instrumentalness FLOAT, 
+    valence FLOAT, 
+    artistID INT
+);
+
+DELIMITER //
+
+CREATE TRIGGER genArtistID 
+    BEFORE INSERT ON BIGTABLE
+    FOR EACH ROW
+BEGIN
+    SET @curr_artist_id = (SELECT MAX(artistID) FROM BIGTABLE WHERE artistName = NEW.artistName);
+    IF @curr_artist_id IS NULL THEN
+        SET @curr_max_id = (SELECT MAX(artistID) FROM BIGTABLE);
+        IF @curr_max_id IS NULL THEN
+            SET NEW.artistID = 0;
+        ELSE 
+            SET NEW.artistID = @curr_max_id + 1;
+        END IF;
+    ELSE
+        SET NEW.artistID = @curr_artist_id;
+    END IF;
+END //
+
+DELIMITER ;
+
+INSERT INTO BIGTABLE(
+    spotifyTrackID, 
+    artistName, 
+    songName, 
+    popularity, 
+    songDuration, 
+    danceability, 
+    loudness, 
+    speechiness, 
+    tempo, 
+    genre, 
+    instrumentalness, 
+    valence
+)
+SELECT DISTINCT
+    track_id, 
+    artist_name, 
+    track_name, 
+    popularity, 
+    duration_ms / 1000 AS songDuration, 
+    danceability, 
+    loudness, 
+    speechiness, 
+    tempo, 
+    genre, 
+    instrumentalness, 
+    valence
+FROM temp2
+LIMIT 2500;
+
+INSERT INTO BIGTABLE(
+    spotifyTrackID, 
+    artistName, 
+    albumName, 
+    songName, 
+    popularity, 
+    songDuration, 
+    danceability, 
+    loudness, 
+    speechiness, 
+    tempo, 
+    genre, 
+    instrumentalness, 
+    valence
+)
+SELECT DISTINCT
+    t.track_id, 
+    t.artists, 
+    t.album_name, 
+    t.track_name, 
+    t.popularity, 
+    t.duration_ms / 1000 AS songDuration, 
+    t.danceability, 
+    t.loudness, 
+    t.speechiness, 
+    t.tempo, 
+    t.track_genre, 
+    t.instrumentalness, 
+    t.valence
+FROM temp t
+WHERE NOT EXISTS(SELECT b1.spotifyTrackID FROM BIGTABLE b1 WHERE t.track_id = b1.spotifyTrackID)
+LIMIT 2500;

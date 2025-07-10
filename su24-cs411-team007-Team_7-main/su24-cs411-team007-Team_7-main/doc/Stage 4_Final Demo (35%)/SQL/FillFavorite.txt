@@ -1,0 +1,54 @@
+DROP TRIGGER IF EXISTS favIDUpdate;
+DROP TRIGGER IF EXISTS favUpdate;
+DROP PROCEDURE IF EXISTS fillFavorites;
+
+DELIMITER //
+
+CREATE TRIGGER favIDUpdate
+	BEFORE INSERT ON Favorites
+	FOR EACH ROW
+	BEGIN
+		SET NEW.favoriteID = (SELECT CONCAT((SELECT userID FROM Account a1 WHERE a1.userID = NEW.userID), (SELECT favoritesCount FROM Account a2 WHERE a2.userID = NEW.userID)));
+
+	END // 
+
+
+
+CREATE TRIGGER favUpdate
+	AFTER INSERT ON Favorites
+	FOR EACH ROW
+
+	BEGIN
+		UPDATE Account SET favoritesCount = (favoritesCount+1) WHERE Account.userID = NEW.userID;
+	END //
+
+
+
+
+
+
+
+CREATE PROCEDURE fillFavorites ()
+BEGIN
+    DECLARE track VARCHAR(100);
+    DECLARE done BOOLEAN DEFAULT FALSE;
+    DECLARE loopCur CURSOR FOR (SELECT spotifyTrackID 
+                                FROM BIGTABLE
+                                WHERE genre = 'alt-rock'
+                                LIMIT 1000);
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    OPEN loopCur;
+        cloop: LOOP
+            FETCH loopCur INTO track;
+	     IF done THEN
+            	LEAVE cloop;
+	     END IF;
+            INSERT INTO Favorites(userID, spotifyTrackID) VALUES("jbgauer", track);
+        END LOOP cloop;
+    CLOSE loopCur;
+
+    END //
+
+DELIMITER;
+
+CALL fillFavorites();

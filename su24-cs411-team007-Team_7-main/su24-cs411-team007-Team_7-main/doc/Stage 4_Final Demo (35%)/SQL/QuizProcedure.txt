@@ -1,0 +1,73 @@
+DROP PROCEDURE IF EXISTS quizProcedure;
+
+DELIMITER //
+
+CREATE PROCEDURE quizProcedure (IN tempo1 FLOAT, IN valence1 FLOAT, IN danceability1 FLOAT, IN popularity1 INT, IN extra INT, IN user1 VARCHAR(100))
+
+	BEGIN
+
+
+	
+	IF extra = 1 THEN
+		
+	((SELECT Song.songName, Artist.name AS artistName, Song.albumName,
+ Song.popularity, Song.spotifyTrackID FROM Song JOIN Artist ON Song.artistID = 
+ Artist.artistID WHERE (tempo <= (tempo1+41) AND tempo >= (tempo1-41)) AND 
+ (valence <= (valence1+.25) AND valence >= (valence1-.25))) INTERSECT 
+(SELECT Song.songName, Artist.name, Song.albumName, Song.popularity, 
+ Song.spotifyTrackID FROM Song JOIN Artist ON Song.artistID = Artist.artistID WHERE 
+(danceability <= (danceability1 + .165) AND danceability >= (danceability1 - .165)) AND (popularity <= (popularity1 + 16) 
+AND popularity >= (popularity1 - 16)))) UNION
+		((SELECT s.songName, a.name AS artistName, s.albumName,
+ s.popularity, s.spotifyTrackID
+		FROM Song s JOIN Artist a ON s.artistID = a.artistID
+		WHERE a.name = (SELECT a1.name 
+		FROM Favorites f1 JOIN Song s1 ON f1.spotifyTrackID = s1.spotifyTrackID JOIN Artist a1 ON s1.artistID = a1.artistID
+		WHERE f1.userID = user1 AND f1.spotifyTrackID != s.spotifyTrackID
+		ORDER BY RAND()
+		LIMIT 1) 
+		LIMIT 1));
+
+	ELSE 
+		
+		((SELECT Song.songName, Artist.name AS artistName, Song.albumName,
+ Song.popularity, Song.spotifyTrackID FROM Song JOIN Artist ON Song.artistID = 
+ Artist.artistID WHERE (tempo <= (tempo1+41) AND tempo >= (tempo1-41)) AND 
+ (valence <= (valence1+.25) AND valence >= (valence1-.25))) INTERSECT 
+(SELECT Song.songName, Artist.name, Song.albumName, Song.popularity, 
+ Song.spotifyTrackID FROM Song JOIN Artist ON Song.artistID = Artist.artistID WHERE 
+(danceability <= (danceability1 + .165) AND danceability >= (danceability1 - .165)) AND (popularity <= (popularity1 + 16) 
+AND popularity >= (popularity1 - 16))));
+		
+	END IF;
+
+	START TRANSACTION;
+
+	DELETE FROM SongRecommendations WHERE UserID = user1;
+
+	INSERT INTO SongRecommendations(recID, userID, spotifyTrackID) 
+	((SELECT CONCAT(user1, Song.spotifyTrackID), user1, Song.spotifyTrackID FROM Song JOIN Artist ON Song.artistID = 
+	Artist.artistID WHERE Song.spotifyTrackID NOT IN (SELECT f.spotifyTrackID FROM Favorites f WHERE f.UserID = user1) AND (tempo <= (tempo1+41) AND tempo >= (tempo1-41)) AND (valence <= (valence1+.25) AND valence >= (valence1-.25))) INTERSECT (SELECT CONCAT(user1, Song.spotifyTrackID), user1, Song.spotifyTrackID FROM Song JOIN Artist ON Song.artistID = Artist.artistID WHERE (danceability <= (danceability1 + .165) AND danceability >= (danceability1 - .165)) AND (popularity <= (popularity1 + 16) AND popularity >= (popularity1 - 16))));
+
+
+	SELECT songName, artistID
+	INTO @mostPopularSongName, @mostPopularArtistID
+	FROM (SELECT songName, Song.artistID, Song.popularity FROM Song JOIN Artist ON Song.artistID = Artist.artistID WHERE (tempo <= (41 + 41) AND tempo >= (41 - 41)) AND (valence <= (.25 + 0.25) AND valence >= (.25 - 0.25)) AND (danceability <= (.165 + 0.165) AND danceability >= (.165 - 0.165)) AND (popularity <= (16 + 16) AND popularity >= (16 - 16)) ORDER BY Song.popularity DESC LIMIT 1
+) AS MostPopular;
+
+	INSERT INTO SongRecommendations(recID, userID, spotifyTrackID)
+	(SELECT CONCAT(user1, Song.spotifyTrackID), user1, Song.spotifyTrackID
+	FROM Song
+	WHERE artistID = @mostPopularArtistID
+	AND songName != @mostPopularSongName
+	ORDER BY RAND()
+	LIMIT 1);
+
+	COMMIT;
+
+	
+	END //
+
+DELIMITER;
+
+

@@ -1,0 +1,25 @@
+DROP TABLE IF EXISTS temp;
+
+CREATE TABLE temp (
+	col INT PRIMARY KEY,
+	track_id VARCHAR(100),
+	artists VARCHAR(100),
+	album_name VARCHAR(100),
+	track_name VARCHAR(100),
+	popularity INT,
+	duration_ms INT,
+	explicit BOOLEAN,
+	danceability FLOAT,
+	energy FLOAT,
+	key1 INT,
+	loudness FLOAT,
+	mode INT,
+	speechiness FLOAT,
+	acousticness FLOAT,
+	instrumentalness FLOAT,
+	liveness FLOAT,
+	valence FLOAT,
+	tempo FLOAT,
+	time_signature INT,
+	track_genre VARCHAR(100)
+);

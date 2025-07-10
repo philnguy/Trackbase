@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist Song Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+	    width:100%;
+        }
+        .search-bar {
+	    width: 100%;
+            margin-right: 10px;
+        }
+        .search-bar input {
+            width: calc(100% -90px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+	    margin-right: 10px;
+        }
+        .search-bar button {
+            width: 80px;
+            padding: 10px;
+            border: none;
+            background-color: #333;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .search-bar button:hover {
+            background-color: #555;
+        }
+	table {
+            width: 100%; /* Make table use full width of the container */
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        th.sort-asc::after {
+            content: ' \25B2'; /* Up arrow */
+        }
+        th.sort-desc::after {
+            content: ' \25BC'; /* Down arrow */
+        }
+        td {
+            background-color: #fff;
+        }
+    </style>
+          
+</head>
+<body>
+    <header>
+        <a href="/">Home</a>
+        <a href="/favorites">Favorites</a>
+	<a href="/quiz">Quiz</a>
+	<a href="/account">Account</a>
+    </header>
+    
+   <div class="container">
+
+        <div class="search-bar">
+            <input type="text" id="artistName" placeholder="Enter artist name">
+            <button onclick="searchSongs()">Search</button>
+            <table id="songTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">Song Name</th>
+                        <th onclick="sortTable(1)">Artist Name</th>
+                        <th onclick="sortTable(2)">Album Name</th>
+                        <th onclick="sortTable(3)">Popularity</th>
+		    </tr>
+                </thead>
+                <tbody id="songTableBody">
+                    <!-- Search results will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+   
+    
+
+    <script>
+        function searchSongs() {
+            const artistName = document.getElementById('artistName').value;
+            fetch(`/search?artistName=${artistName}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('songTableBody');
+                    tableBody.innerHTML = '';
+                    data.forEach(song => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${song.songName}</td>
+			    <td>${song.artistName}</td>
+                            <td>${song.albumName}</td>
+			    <td>${song.popularity}</td>
+                        `;
+			tableBody.appendChild(row);
+                    });
+                });
+        }
+
+let sortDirection = true; // true for ascending, false for descending
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById("songTable");
+            const rows = Array.from(table.rows).slice(1);
+	     const isNumericColumn = columnIndex === 3;
+            const sortedRows = rows.sort((a, b) => {
+                const aText = a.cells[columnIndex].innerText;
+                const bText = b.cells[columnIndex].innerText;
+		if (columnIndex == 3) {
+			const aValue = isNumericColumn ? parseFloat(aText) : aText.toLowerCase();
+                	const bValue = isNumericColumn ? parseFloat(bText) : bText.toLowerCase();
+                	if (aValue < bValue) return sortDirection ? -1 : 1;
+                	if (aValue > bValue) return sortDirection ? 1 : -1;
+}
+                return (sortDirection ? aText.localeCompare(bText) : bText.localeCompare(aText));
+            });
+            
+
+            const tbody = document.getElementById("songTableBody");
+            tbody.innerHTML = '';
+            sortedRows.forEach(row => tbody.appendChild(row));
+
+            sortDirection = !sortDirection;
+
+            // Update column header styles
+            Array.from(table.getElementsByTagName("th")).forEach((th, index) => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (index === columnIndex) {
+                    th.classList.add(sortDirection ? 'sort-asc' : 'sort-desc');
+                }
+            });
+        }
+	</script>
+
+</body>
+</html>

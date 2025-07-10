@@ -1,0 +1,60 @@
+DROP TABLE IF EXISTS SongRecommendations;
+DROP TABLE IF EXISTS Favorites;
+DROP TABLE IF EXISTS Account;
+DROP TABLE IF EXISTS Song;
+DROP TABLE IF EXISTS Artist;
+
+CREATE TABLE Artist(
+	name VARCHAR(100),
+	artistID VARCHAR(100),
+	songCount INT,
+	albumCount INT,
+	PRIMARY KEY (artistID)
+);
+
+
+
+CREATE TABLE Song(
+	spotifyTrackID VARCHAR(100),
+	songName VARCHAR(100),
+	artistID VARCHAR(100) ,
+	albumName VARCHAR(100),
+	songDuration INT, 
+	loudness FLOAT,
+	tempo FLOAT,
+	genre VARCHAR(100),
+	speechiness FLOAT,
+	instrumentalness FLOAT,
+	valence FLOAT,
+	popularity INT,
+	danceability FLOAT,
+	PRIMARY KEY (spotifyTrackID),
+	FOREIGN KEY (artistID) REFERENCES Artist(artistID)
+);
+
+CREATE TABLE Account(
+	name VARCHAR(100),
+	userID VARCHAR(100),
+	favoritesCount INT,
+	favoriteGenre VARCHAR(100),
+	PRIMARY KEY (userID)
+);
+
+
+CREATE TABLE Favorites(
+	favoriteID VARCHAR(100),
+	userID VARCHAR(100),
+	spotifyTrackID VARCHAR(100),
+	PRIMARY KEY (favoriteID),
+	FOREIGN KEY (userID) REFERENCES Account(userID),
+	FOREIGN KEY (spotifyTrackID) REFERENCES Song(spotifyTrackID)
+);
+
+CREATE TABLE SongRecommendations(
+	recID VARCHAR(100),
+	userID VARCHAR(100),
+	spotifyTrackID VARCHAR(100),
+	PRIMARY KEY (recID),
+	FOREIGN KEY (userID) REFERENCES Account(userID),
+	FOREIGN KEY (spotifyTrackID) REFERENCES Song(spotifyTrackID)
+);
